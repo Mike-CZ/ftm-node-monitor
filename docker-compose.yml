@@ -1,0 +1,74 @@
+version: '3.9'
+
+x-logging: &default-logging
+  options:
+    max-size: "12m"
+    max-file: "5"
+  driver: json-file
+
+x-restart-policy: &restart-policy
+  restart: unless-stopped
+
+networks:
+  ftm-monitoring-network:
+    driver: bridge
+
+services:
+  node-exporter:
+    image: prom/node-exporter:v1.3.1
+    container_name: node-exporter
+    logging: *default-logging
+    <<: *restart-policy
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    expose:
+      - 9100
+    networks:
+      - ftm-monitoring-network
+
+  prometheus:
+    image: prom/prometheus:v2.32.0
+    user: ${CONTAINER_UID_GID}
+    container_name: prometheus
+    logging: *default-logging
+    <<: *restart-policy
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./.data/prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    expose:
+      - 9090
+    networks:
+      - ftm-monitoring-network
+
+  grafana:
+    image: grafana/grafana:8.3.3
+    user: ${CONTAINER_UID_GID}
+    container_name: grafana
+    logging: *default-logging
+    <<: *restart-policy
+    volumes:
+      - ./.data/grafana:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=${GF_USERS_ALLOW_SIGN_UP}
+    ports:
+      - "3000:3000"
+    networks:
+      - ftm-monitoring-network
+    labels:
+      org.label-schema.group: "monitoring"
