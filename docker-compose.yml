@@ -33,6 +33,23 @@ services:
     networks:
       - ftm-monitoring-network
 
+  process-exporter:
+    image: ncabatoff/process-exporter:0.7.10
+    container_name: process-exporter
+    privileged: true
+    logging: *default-logging
+    <<: *restart-policy
+    volumes:
+      - /proc:/host/proc:ro
+    command:
+      - '--procfs=/host/proc'
+      - '--procnames=opera'
+      - '--threads=false'
+    expose:
+      - 9256
+    networks:
+      - ftm-monitoring-network
+
   prometheus:
     image: prom/prometheus:v2.32.0
     user: ${CONTAINER_UID_GID}
@@ -48,7 +65,7 @@ services:
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
-    expose:
+    ports:
       - 9090
     networks:
       - ftm-monitoring-network
