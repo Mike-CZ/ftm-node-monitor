@@ -17,6 +17,8 @@ services:
   node-exporter:
     image: prom/node-exporter:v1.3.1
     container_name: node-exporter
+    network_mode: host
+    pid: host
     logging: *default-logging
     <<: *restart-policy
     volumes:
@@ -30,8 +32,6 @@ services:
       - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
     expose:
       - 9100
-    networks:
-      - ftm-monitoring-network
 
   process-exporter:
     image: ncabatoff/process-exporter:0.7.10
@@ -65,8 +65,10 @@ services:
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
-    ports:
+    expose:
       - 9090
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - ftm-monitoring-network
 
