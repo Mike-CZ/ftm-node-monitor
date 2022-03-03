@@ -14,3 +14,8 @@ scrape_configs:
   - job_name: "process"
     static_configs:
       - targets: [ "process-exporter:9256" ]
+
+  - job_name: "opera"
+    metrics_path: '/debug/metrics/prometheus'
+    static_configs:
+      - targets: [ 'host.docker.internal:6060' ]
